@@ -61,7 +61,7 @@ jobs:
 
       - name: Upload artifact to S3
         run: |
-          aws s3 sync ./artifact-folder s3://test--wordpress
+          aws s3 sync ./artifact-folder s3:/arti-storage
       - name: Test deployment
         run: |
           curl http://ec2-3-84-248-98.compute-1.amazonaws.com/
