@@ -30,7 +30,7 @@ jobs:
   deploy:
     needs: install_and_test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+ 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
