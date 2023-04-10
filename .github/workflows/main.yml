@@ -8,6 +8,7 @@ on:
     branches:
       - main
   workflow_dispatch: 
+
 jobs:
   install_and_test:
     runs-on: ubuntu-latest
@@ -28,6 +29,7 @@ jobs:
   deploy:
     needs: install_and_test
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -40,12 +42,8 @@ jobs:
           aws-region: us-east-1
 
       - name: Setup SSH
-          run:|
-            echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
-            chmod 600 private_key.pem
-            mkdir -p ~/.ssh
-            ssh-keyscan -t rsa ec2-3-84-248-98.compute-1.amazonaws.com >> ~/.ssh/known_hosts || true
-
-      - name: Deploy to EC2 instance
         run: |
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem' . ubuntu@ec2-3-84-248-98.compute-1.amazonaws.com:/var/www/html/
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          mkdir -p ~/.ssh
+          ssh-keyscan -t rsa ec2-3-84-248-98.compute-1.amazonaws.com >> ~/.ssh/known_hosts || true
