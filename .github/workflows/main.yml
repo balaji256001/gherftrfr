@@ -51,7 +51,7 @@ jobs:
           ssh-keyscan -t rsa ec2-3-80-138-158.compute-1.amazonaws.com >> ~/.ssh/known_hosts || true
       - name: Deploy to EC2 instance
         run: |
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -v' . ec2-3-80-138-158.compute-1.amazonaws.com:/var/www/html/
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem' . ubuntu@ec2-3-80-138-158.compute-1.amazonaws.com:/var/www/html/
 
       - name: Create artifact folder
         run: mkdir artifact-folder
