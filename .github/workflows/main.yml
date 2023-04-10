@@ -37,8 +37,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: AKIA3SNVJAAW3EYM667C
-          aws-secret-access-key: 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
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
       - name: Setup SSH
@@ -47,3 +47,21 @@ jobs:
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           ssh-keyscan -t rsa ec2-3-84-248-98.compute-1.amazonaws.com >> ~/.ssh/known_hosts || true
+
+      - name: Deploy to EC2 instance
+        run: |
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem' . ubuntu@ec2-3-84-248-98.compute-1.amazonaws.com:/var/www/html/
+
+      - name: Create artifact folder
+        run: mkdir artifact-folder
+
+      - name: Copy WordPress files to artifact folder
+        run: cp -r /var/www/html/* artifact-folder/
+
+      - name: Upload artifact to S3
+        run: |
+          aws s3 sync ./artifact-folder s3://test--wordpress
+
+      - name: Test deployment
+        run: |
+          curl http://ec2-3-84-248-98.compute-1.amazonaws.com/
