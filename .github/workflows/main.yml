@@ -42,13 +42,14 @@ jobs:
           aws-region: us-east-1
 
       - name: Setup SSH
-        env:
-          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          echo "$PRIVATE_KEY" > private_key.pem
-          chmod 600 private_key.pem
-          mkdir -p ~/.ssh
-          ssh-keyscan -t rsa ec2-3-80-138-158.compute-1.amazonaws.com >> ~/.ssh/known_hosts || true
+          env:
+            PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          run: |
+            echo "$PRIVATE_KEY" > private_key.pem
+            chmod 400 private_key.pem
+            mkdir -p ~/.ssh
+            ssh-keyscan -t rsa ec2-3-80-138-158.compute-1.amazonaws.com >> ~/.ssh/known_hosts || true
+
       - name: Deploy to EC2 instance
         run: |
           rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i gitact.pem' . ec2-3-80-138-158.compute-1.amazonaws.com:/var/www/html/
