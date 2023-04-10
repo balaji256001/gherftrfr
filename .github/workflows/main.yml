@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   install_and_test:
@@ -26,20 +26,51 @@ jobs:
       - name: Install dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-  deploy:
+  build:
     needs: install_and_test
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          extensions: mbstring, intl, mysql, pdo_mysql, zip
+          tools: composer:v2
+
+      - name: Build project
+        run: |
+          # Add the necessary build commands for your project here
+
+      - name: Create and store artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: project-artifact
+          path: ./
+          retention-days: 7
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: project-artifact
+          path: ./artifact-folder
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: AKIA3SNVJAAW3EYM667C
-          aws-secret-access-key: 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
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+
+      - name: Upload artifact to S3
+        run: |
+          aws s3 sync ./artifact-folder s3://test--wordpresss
 
       - name: Setup SSH
         run: |
