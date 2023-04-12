@@ -26,8 +26,47 @@ jobs:
       - name: Install dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-  deploy:
+  build_and_upload_artifact:
     needs: install_and_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install npm dependencies
+        run: |
+          cd wp-content/themes/your-custom-theme
+          npm ci
+
+      - name: Build assets with Gulp
+        run: |
+          cd wp-content/themes/your-custom-theme
+          npx gulp
+
+      - name: Create artifact folder
+        run: mkdir artifact-folder
+
+      - name: Copy WordPress files to artifact folder
+        run: cp -r /var/www/html/* artifact-folder/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Upload artifact to S3
+        run: |
+          aws s3 sync ./artifact-folder s3://arti-storage
+
+  deploy:
+    needs: build_and_upload_artifact
     runs-on: ubuntu-latest
 
     steps:
@@ -50,17 +89,18 @@ jobs:
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           echo "$HOST_KEY" >> ~/.ssh/known_hosts
-          
+
+      - name: Download artifact from S3
+        run: |
+          aws s3 sync s3://arti-storage ./artifact-folder
+
       - name: Deploy to EC2 instance
         run: |
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --chmod=D2775,F664 --chown=ubuntu:ubuntu . ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com:/var/www/html/
-          
-      - name: Create artifact folder
-        run: mkdir artifact-folder
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com:/var/www/html/
 
-      - name: Copy WordPress files to artifact folder
-        run: cp -r /var/www/html/* artifact-folder/
-
-      - name: Upload artifact to S3
+      - name: Restart web server
         run: |
-          aws s3 sync ./artifact-folder s3://arti-storage
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com "sudo systemctl restart apache2"
+
+         
+
