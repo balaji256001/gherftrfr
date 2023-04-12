@@ -55,4 +55,12 @@ jobs:
         run: |
           sudo rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem' . ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com:/var/www/html/
           
-      - name: Create
+      - name: Create artifact folder
+        run: mkdir artifact-folder
+
+      - name: Copy WordPress files to artifact folder
+        run: cp -r /var/www/html/* artifact-folder/
+
+      - name: Upload artifact to S3
+        run: |
+          aws s3 sync ./artifact-folder s3://arti-storage
