@@ -51,23 +51,31 @@ jobs:
           ssh-keyscan -t rsa ec2-44-201-255-103.compute-1.amazonaws.com >> ~/.ssh/known_hosts || true
       - name: Deploy to EC2 instance
         run: |
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem' . ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com:/var/www/html/
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem' . ubuntu@ec2-3-80-138-158.compute-1.amazonaws.com:/var/www/html/
 
-      - name: Setup WordPress
-        env:
-          DB_NAME: wordpress_db
-          DB_USER: wordpress_user
-          DB_PASSWORD: your_password
-          EC2_INSTANCE: ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com
+      # Install LEMP stack on EC2 instance
+      - name: Install LEMP Stack
         run: |
-          ssh -i private_key.pem $EC2_INSTANCE "wget https://wordpress.org/latest.tar.gz"
-          ssh -i private_key.pem $EC2_INSTANCE "tar -xzvf latest.tar.gz"
-          ssh -i private_key.pem $EC2_INSTANCE "sudo mv wordpress/* /var/www/html/"
-          ssh -i private_key.pem $EC2_INSTANCE "sudo chown -R www-data:www-data /var/www/html/"
-          ssh -i private_key.pem $EC2_INSTANCE "sudo find /var/www/html/ -type d -exec chmod 755 {} \\;"
-          ssh -i private_key.pem $EC2_INSTANCE "sudo find /var/www/html/ -type f -exec chmod 644 {} \\;"
-          ssh -i private_key.pem $EC2_INSTANCE "mysql -u root -p -e \"CREATE DATABASE $DB_NAME; CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD'; GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;\""
-          ssh -i private_key.pem $EC2_INSTANCE "sudo cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php"
-          ssh -i private_key.pem $EC2_INSTANCE "sudo sed -i \"s/'database_name_here'/'$DB_NAME'/g; s/'username_here'/'$DB_USER
+          ssh -i private_key.pem ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com 'bash -s' < lemp_install.sh
+
+      # Create MySQL database and user
+      - name: Setup MySQL
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+        run: |
+          ssh -i private_key.pem ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com "mysql -u root -p${MYSQL_ROOT_PASSWORD} -e \"CREATE DATABASE ${DB_NAME}; CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}'; GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost'; FLUSH PRIVILEGES;\""
+
+      # Configure WordPress
+      - name: Configure WordPress
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: localhost
+        run: |
+          ssh -i private_key.pem ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com "wget https://wordpress
 
 
