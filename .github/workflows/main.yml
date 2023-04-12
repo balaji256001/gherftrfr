@@ -38,15 +38,7 @@ jobs:
         with:
           node-version: 14
 
-      - name: Install npm dependencies
-        run: |
-          cd wp-content/themes/your-custom-theme
-          npm ci
-
-      - name: Build assets with Gulp
-        run: |
-          cd wp-content/themes/your-custom-theme
-          npx gulp
+   
 
       - name: Create artifact folder
         run: mkdir artifact-folder
