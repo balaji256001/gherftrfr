@@ -48,7 +48,7 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
-          ssh-keyscan -H ec2-44-201-255-103.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+          echo -e "Host ec2-44-201-255-103.compute-1.amazonaws.com\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
           
       - name: Deploy to EC2 instance
         run: |
