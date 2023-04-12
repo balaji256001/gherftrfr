@@ -42,18 +42,18 @@ jobs:
           aws-region: us-east-1
 
       - name: Setup SSH
-          env:
-            PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           ssh-keyscan -H ec2-44-201-255-103.compute-1.amazonaws.com >> ~/.ssh/known_hosts
-
+          
       - name: Deploy to EC2 instance
         run: |
           sudo rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem' . ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com:/var/www/html/
-
+          
       - name: Create artifact folder
         run: mkdir artifact-folder
 
@@ -63,5 +63,3 @@ jobs:
       - name: Upload artifact to S3
         run: |
           aws s3 sync ./artifact-folder s3://arti-storage
- 
-
