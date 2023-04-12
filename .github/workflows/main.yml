@@ -44,22 +44,15 @@ jobs:
       - name: Setup SSH
         env:
           PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST_KEY: 'ec2-44-201-255-103.compute-1.amazonaws.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDS5fqlD+BJYpj3oOkHlmnjV6YHmqYW+X8HzRu9Td91c4i3vHjmazGw28IJtM6NNd6PM1qGHQqCEHxtVGBQludAME2dNOKzXkX1lt5Wx6s4R1Jzx3QHuUr8rYT3/1wu/cZhbYhv2Vhx4RjwNyEKcXsPNgLT4WkoFM3xcF2U3LXB86lVFxgG4ulQx2RZkY6g8Q4nVfslSRWJy8LF5/x07xPpOt1UOuenadD+v6YPu+FT5x1rl4M78M3+QxTIokhEux7xNy+oqG/M/pSeNKTEuj37Kgx93hAqh3ZqWgNH+fEHMymMsxrSQ4UZDPlqtTBvdrRvRLFTsfJ3YLwCZC1Vmjh86bbZQitczSNKrnEttCO0Z8ER8Bgva2lslF5uI6pfBNwCbR6GPfK9oBzv21qcuURazxyu6kkC3Dhj9/V4sZf3OtuuZujDc/5g1J+AKehEHV+uS151hJGGya7k9L+TyvNcB+TpoF8pUs+I6NmmWvuw/pHbtHjVPoSD62HtZnw+oKs='
         run: |
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
-          echo -e "Host ec2-44-201-255-103.compute-1.amazonaws.com\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+          echo "$HOST_KEY" >> ~/.ssh/known_hosts
           
       - name: Deploy to EC2 instance
         run: |
           sudo rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem' . ubuntu@ec2-44-201-255-103.compute-1.amazonaws.com:/var/www/html/
           
-      - name: Create artifact folder
-        run: mkdir artifact-folder
-
-      - name: Copy WordPress files to artifact folder
-        run: cp -r /var/www/html/* artifact-folder/
-
-      - name: Upload artifact to S3
-        run: |
-          aws s3 sync ./artifact-folder s3://arti-storage
+      - name: Create
