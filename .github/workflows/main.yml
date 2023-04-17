@@ -86,7 +86,7 @@ jobs:
           aws s3 sync s3://arti-storage ./artifact-folder
       - name: Deploy to EC2 instance
         run: |
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@<your-ec2-instance-public-ip>:/var/www/html/
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@44.201.255.103:/var/www/html/
       - name: Restart web server
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.201.255.103 "sudo systemctl restart apache2"
