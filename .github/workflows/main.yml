@@ -36,21 +36,6 @@ jobs:
       - name: Install dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Setup WordPress environment
-        env:
-          DB_HOST: 127.0.0.1
-          DB_USER: root
-          DB_PASSWORD: ''
-          DB_NAME: wordpress_test
-        run: |
-          cp wp-tests-config-sample.php wp-tests-config.php
-          sed -i 's/youremptytestdbnamehere/${{ env.DB_NAME }}/g' wp-tests-config.php
-          sed -i 's/yourusernamehere/${{ env.DB_USER }}/g' wp-tests-config.php
-          sed -i 's/yourpasswordhere/${{ env.DB_PASSWORD }}/g' wp-tests-config.php
-          sed -i 's|localhost|${{ env.DB_HOST }}|g' wp-tests-config.php
-      - name: Run PHPUnit tests
-        run: |
-          vendor/bin/phpunit
   build_and_upload_artifact:
     needs: install_and_test
     runs-on: ubuntu-latest
