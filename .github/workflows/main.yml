@@ -80,13 +80,13 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
-          ssh-keyscan -t ecdsa 44.201.255.103 >> ~/.ssh/known_hosts
+          ssh-keyscan -t ecdsa 54.144.17.44 >> ~/.ssh/known_hosts
       - name: Download artifact from S3
         run: |
           aws s3 sync s3://arti-storage ./artifact-folder
       - name: Deploy to EC2 instance
         run: |
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@44.201.255.103:/var/www/html/
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@54.144.17.44:/var/www/html/
       - name: Restart web server
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.201.255.103 "sudo systemctl restart apache2"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl restart apache2"
