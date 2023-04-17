@@ -90,3 +90,8 @@ jobs:
       - name: Restart web server
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl restart apache2"
+      - name: Change permissions on EC2 instance
+        run: |
+          scp -i private_key.pem -o StrictHostKeyChecking=no ./change_permissions.sh ubuntu@54.144.17.44:/tmp/
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "chmod +x /tmp/change_permissions.sh"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo /tmp/change_permissions.sh"
