@@ -86,7 +86,12 @@ jobs:
           aws s3 sync s3://arti-storage ./artifact-folder
       - name: Deploy to EC2 instance
         run: |
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./public/ ubuntu@54.144.17.44:/var/www/html/
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@54.144.17.44:/var/www/html/
       - name: Restart web server
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl restart apache2"
+      - name: Change permissions on EC2 instance
+        run: |
+          scp -i private_key.pem -o StrictHostKeyChecking=no ./change_permissions.sh ubuntu@54.144.17.44:/tmp/
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "chmod +x /tmp/change_permissions.sh"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo /tmp/change_permissions.sh"
