@@ -7,10 +7,21 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch: 
+  workflow_dispatch:
+
 jobs:
   install_and_test:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -25,12 +36,48 @@ jobs:
       - name: Install dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-    
-
-  deploy:
+      - name: Setup WordPress environment
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASSWORD: ''
+          DB_NAME: wordpress_test
+        run: |
+          cp wp-tests-config-sample.php wp-tests-config.php
+          sed -i 's/youremptytestdbnamehere/${{ env.DB_NAME }}/g' wp-tests-config.php
+          sed -i 's/yourusernamehere/${{ env.DB_USER }}/g' wp-tests-config.php
+          sed -i 's/yourpasswordhere/${{ env.DB_PASSWORD }}/g' wp-tests-config.php
+          sed -i 's|localhost|${{ env.DB_HOST }}|g' wp-tests-config.php
+      - name: Run PHPUnit tests
+        run: |
+          vendor/bin/phpunit
+  build_and_upload_artifact:
     needs: install_and_test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Create artifact folder
+        run: mkdir artifact-folder
+
+      - name: Copy WordPress files to artifact folder
+        run: cp -r /var/www/html/* artifact-folder/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Upload artifact to S3
+        run: |
+          aws s3 sync ./artifact-folder s3://arti-storage
+  deploy:
+    needs: build_and_upload_artifact
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -38,16 +85,23 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: AKIA3SNVJAAW3EYM667C
-          aws-secret-access-key: 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
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-
       - name: Setup SSH
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+          echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
-          ssh-keyscan -t rsa ec2-3-84-248-98.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+          mkdir -p ~/.ssh
+          ssh-keyscan -t ecdsa 44.201.255.103 >> ~/.ssh/known_hosts
+      - name: Download artifact from S3
+        run: |
+          aws s3 sync s3://arti-storage ./artifact-folder
       - name: Deploy to EC2 instance
         run: |
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem' . ubuntu@ec2-3-84-248-98.compute-1.amazonaws.com:/var/www/html/
-          
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@<your-ec2-instance-public-ip>:/var/www/html/
+      - name: Restart web server
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.201.255.103 "sudo systemctl restart apache2"
