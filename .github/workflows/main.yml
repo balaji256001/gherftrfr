@@ -10,17 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  install_and_test:
+  build_and_deploy:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: wordpress_test
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - name: Checkout code
@@ -36,19 +27,6 @@ jobs:
       - name: Install dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-  build_and_upload_artifact:
-    needs: install_and_test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Create artifact folder
-        run: mkdir artifact-folder
-
-      - name: Copy WordPress files to artifact folder
-        run: cp -r /var/www/html/* artifact-folder/
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -57,22 +35,8 @@ jobs:
           aws-region: us-east-1
 
       - name: Upload artifact to S3
-        run: |
-          aws s3 sync ./artifact-folder s3://arti-storage
-  deploy:
-    needs: build_and_upload_artifact
-    runs-on: ubuntu-latest
+        run: aws s3 sync ./artifact-folder s3://arti-storage
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
       - name: Setup SSH
         env:
           PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -81,12 +45,12 @@ jobs:
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           ssh-keyscan -t ecdsa 54.144.17.44 >> ~/.ssh/known_hosts
+
       - name: Download artifact from S3
-        run: |
-          aws s3 sync s3://arti-storage ./artifact-folder
+        run: aws s3 sync s3://arti-storage ./artifact-folder
+
       - name: Deploy to EC2 instance
-        run: |
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./public/ ubuntu@54.144.17.44:/var/www/html/
+        run: rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./public/ ubuntu@54.144.17.44:/var/www/html/
+
       - name: Restart web server
-        run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl restart apache2"
+        run: ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl restart apache2"
