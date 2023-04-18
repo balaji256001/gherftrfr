@@ -35,7 +35,7 @@ jobs:
           aws-region: us-east-1
 
       - name: Upload artifact to S3
-        run: aws s3 sync ./public s3://public
+        run: aws s3 sync ./artifact-folder s3://arti-storage
 
       - name: Setup SSH
         env:
