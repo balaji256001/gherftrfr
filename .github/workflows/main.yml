@@ -47,7 +47,7 @@ jobs:
           ssh-keyscan -t ecdsa 54.144.17.44 >> ~/.ssh/known_hosts
 
       - name: Download artifact from S3
-        run: aws s3 sync s3://arti-storage ./artifact-folder
+        run: aws s3 sync s3://arti-storage ./public
 
       - name: Deploy to EC2 instance
         run: rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./public/ ubuntu@54.144.17.44:/var/www/html/
