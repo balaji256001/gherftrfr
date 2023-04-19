@@ -8,15 +8,14 @@ on:
     branches:
       - main
   workflow_dispatch:
+
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-east-1
-jobs:
-  
 
+jobs:
   build_and_upload_artifact:
-    
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -32,24 +31,18 @@ jobs:
       - name: Install dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Checkout code
-        uses: actions/checkout@v2
-
       - name: Create artifact folder
         run: mkdir artifact-folder
 
       - name: Copy WordPress files to artifact folder
         run: cp -r /var/www/html/* artifact-folder/
 
-   
-
       - name: Upload artifact to S3
-        run: |
-          aws s3 sync ./artifact-folder s3://arti-storage/${FMP_REGION}/${FMP_ENV}/
+        run: aws s3 sync ./artifact-folder s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/
+
   deploy:
     needs: build_and_upload_artifact
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -62,12 +55,14 @@ jobs:
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           ssh-keyscan -t ecdsa 54.144.17.44 >> ~/.ssh/known_hosts
+
       - name: Download artifact from S3
-        run: |
-          aws s3 sync s3://arti-storage ./artifact-folder
+        run: aws s3 sync s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/ ./artifact-folder
+
       - name: Deploy to EC2 instance
         run: |
           rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./public/ ubuntu@54.144.17.44:/var/www/html/
+
       - name: Restart web server
-        run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl restart apache2"
+        run: ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl restart apache2"
+
