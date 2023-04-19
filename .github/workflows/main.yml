@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload artifact to S3
         run: |
-          aws s3 sync ./artifact-folder s3://arti-storage
+          aws s3 sync ./artifact-folder s3://arti-storage/${FMP_REGION}/${FMP_ENV}/
   deploy:
     needs: build_and_upload_artifact
     runs-on: ubuntu-latest
