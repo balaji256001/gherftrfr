@@ -62,7 +62,7 @@ jobs:
       - name: Deploy to EC2 instance
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R ubuntu:ubuntu /var/www/html/; sudo chmod -R 775 /var/www/html/"
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --e xclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@54.144.17.44:/var/www/html/wp-content/themes/
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@54.144.17.44:/var/www/html/wp-content/themes/
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
 
 
