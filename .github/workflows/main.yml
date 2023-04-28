@@ -13,6 +13,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-east-1
+  JAVA_HOME: "/usr/lib/jvm/java-1.8.0-amazon-corretto"
 
 jobs:
   build_and_upload_artifact:
@@ -21,24 +22,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v2
         with:
-          php-version: '7.4'
-          extensions: mbstring, intl, mysql, pdo_mysql, zip
-          tools: composer:v2
+          java-version: '8'
+          distribution: 'temurin'
 
-      - name: Install dependencies
-        run: composer install --no-progress --prefer-dist --optimize-autoloader
+      - name: Build and prepare artifacts
+        run: |
+          echo Entered the build phase...
+          echo Build started on `date`
+          echo "$FMP_ENV" > scripts/fmpenv
+          echo "$FMP_REGION" > scripts/fmpregion
 
-      - name: Create artifact folder
-        run: mkdir artifact-folder
-
-      - name: Copy WordPress files to artifact folder
-        run: cp -r /var/www/html/* artifact-folder/
-
-      - name: Upload artifact to S3
-        run: aws s3 sync ./artifact-folder s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/
+          echo "Post build phase started"
+          mkdir -p artifacts/fadvuk
+          cp -PR custom_packages artifacts
+          cp -PR forbes-advisor-theme/* artifacts/fadvuk/
+          rsync scripts/* --progress artifacts/ --exclude prod
+          cd artifacts
+          zip -r fmp-advisor-cms.zip *
+          aws s3 cp fmp-advisor-cms.zip s3://arti-storage/${{ secrets.FMP_ENV }}/${{ secrets.FMP_REGION }}/
 
   deploy:
     needs: build_and_upload_artifact
@@ -65,6 +69,10 @@ jobs:
           rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@54.144.17.44:/var/www/html/wp-content/themes/
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
 
-      - name: Restart web server
-        run: ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl restart apache2"
+      - name: Run scripts on EC2 instance
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl stop apache2"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl start apache2"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
 
+          
