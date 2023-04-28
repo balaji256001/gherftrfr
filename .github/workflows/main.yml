@@ -75,6 +75,4 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl start apache2"
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
 
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo /var/www/html/wp-content/themes/stopapache.sh"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo /var/www/html/wp-content/themes/startapache.sh"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo /var/www/html/wp-content/themes/changeown.sh"
+          
