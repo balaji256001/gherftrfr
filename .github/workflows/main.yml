@@ -42,7 +42,7 @@ jobs:
           rsync scripts/* --progress artifacts/ --exclude prod
           cd artifacts
           zip -r fmp-advisor-cms.zip *
-          aws s3 cp fmp-advisor-cms.zip s3://com-advisor-cms-artifact/${{ secrets.FMP_ENV }}/${{ secrets.FMP_REGION }}/
+          aws s3 cp fmp-advisor-cms.zip s3://arti-storage/${{ secrets.FMP_ENV }}/${{ secrets.FMP_REGION }}/
 
   deploy:
     needs: build_and_upload_artifact
@@ -61,7 +61,7 @@ jobs:
           ssh-keyscan -t ecdsa 54.144.17.44 >> ~/.ssh/known_hosts
 
       - name: Download artifact from S3
-        run: aws s3 sync s3://com-advisor-cms-artifact/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/ ./artifact-folder
+        run: aws s3 sync s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/ ./artifact-folder
 
       - name: Deploy to EC2 instance
         run: |
