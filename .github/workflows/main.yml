@@ -23,6 +23,7 @@ env:
 
 jobs:
   build_and_upload_artifact:
+    if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.rollback_version }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -53,6 +54,7 @@ jobs:
           aws s3 cp $artifact_name s3://arti-storage/${{ secrets.FMP_ENV }}/${{ secrets.FMP_REGION }}/$artifact_name
   deploy:
     needs: build_and_upload_artifact
+    if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.rollback_version }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
