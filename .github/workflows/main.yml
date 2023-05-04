@@ -101,8 +101,8 @@ jobs:
 
     - name: Download specified artifact version from S3
       run: |
-        specified_artifact="s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/fmp-advisor-cms-${{ github.event.inputs.rollback_version }}.zip"
-        aws s3 cp $specified_artifact ./artifact-folder/
+        specified_artifact="${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/fmp-advisor-cms-${{ github.event.inputs.rollback_version }}.zip"
+        aws s3 cp s3://arti-storage/$specified_artifact ./artifact-folder/
 
     - name: Deploy to EC2 instance
       run: |
