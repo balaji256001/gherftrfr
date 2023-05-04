@@ -65,22 +65,22 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
-          ssh-keyscan -t ecdsa 54.144.17.44 >> ~/.ssh/known_hosts
+          ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
 
       - name: Download artifact from S3
         run: aws s3 sync s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/ ./artifact-folder
 
       - name: Deploy to EC2 instance
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R ubuntu:ubuntu /var/www/html/; sudo chmod -R 775 /var/www/html/; sudo mkdir -p /var/www/html/wp-content/themes"
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@54.144.17.44:/var/www/html/wp-content/themes/
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R ubuntu:ubuntu /var/www/html/; sudo chmod -R 775 /var/www/html/; sudo mkdir -p /var/www/html/wp-content/themes"
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@44.202.19.252:/var/www/html/wp-content/themes/
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
 
       - name: Run scripts on EC2 instance
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl stop apache2"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl start apache2"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl stop apache2"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl start apache2"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
 
   rollback:
     runs-on: ubuntu-latest
@@ -94,7 +94,7 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
-          ssh-keyscan -t ecdsa 54.144.17.44 >> ~/.ssh/known_hosts
+          ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
 
       - name: Download specified artifact from S3
         run: |
@@ -103,11 +103,11 @@ jobs:
 
       - name: Deploy specified artifact to EC2 instance
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R ubuntu:ubuntu /var/www/html/; sudo chmod -R 775 /var/www/html/; sudo mkdir -p /var/www/html/wp-content/themes"
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@54.144.17.44:/var/www/html/wp-content/themes/
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R ubuntu:ubuntu /var/www/html/; sudo chmod -R 775 /var/www/html/; sudo mkdir -p /var/www/html/wp-content/themes"
+          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@44.202.19.252:/var/www/html/wp-content/themes/
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
 
       - name: Restart services on EC2 instance
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl stop apache2"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo systemctl start apache2"    
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl stop apache2"
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl start apache2"    
