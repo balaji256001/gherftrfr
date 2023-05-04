@@ -68,7 +68,9 @@ jobs:
           ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
 
       - name: Download artifact from S3
-        run: aws s3 sync s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/ ./artifact-folder
+          latest_artifact=$(aws s3api list-objects --bucket arti-storage --query "reverse(sort_by(Contents, &LastModified))[0].Key" --output=text --prefix "${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/")
+          echo "Latest artifact: $latest_artifact"
+          aws s3 cp s3://arti-storage/$latest_artifact ./artifact-folder/
 
       - name: Deploy to EC2 instance
         run: |
