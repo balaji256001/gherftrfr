@@ -95,10 +95,15 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
 
-      - name: Download specified artifact from S3
+      - name: Get the most recent artifact from S3
+        id: latest_artifact
         run: |
-          rollback_version=${{ github.event.inputs.rollback_version }}
-          aws s3 cp s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/$rollback_version ./artifact-folder
+          latest_artifact=$(aws s3api list-objects --bucket arti-storage --query "reverse(sort_by(Contents, &LastModified))[0].Key" --output=text --prefix "${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/")
+          echo "Latest artifact: $latest_artifact"
+          echo "::set-output name=artifact_path::$latest_artifact"
+
+      - name: Download the most recent artifact from S3
+        run: aws s3 cp s3://arti-storage/${{ steps.latest_artifact.outputs.artifact_path }} ./artifact-folder 
 
       - name: Deploy specified artifact to EC2 instance
         run: |
