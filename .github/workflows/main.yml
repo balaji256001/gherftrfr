@@ -75,7 +75,8 @@ jobs:
           latest_artifact=$(aws s3api list-objects --bucket arti-storage --query "reverse(sort_by(Contents[?contains(Key, \`$folder_path\`)], &LastModified))[0].Key" --output=text)
           echo "Latest artifact: $latest_artifact"
           echo "::set-output name=artifact_path::$latest_artifact"
-
+      - name: Create artifact-folder
+        run: mkdir -p artifact-folder
       - name: Download the most recent artifact from S3
         run: aws s3 cp s3://arti-storage/${{ steps.latest_artifact.outputs.artifact_path }} ./artifact-folder
 
