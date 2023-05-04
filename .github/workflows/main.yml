@@ -90,38 +90,4 @@ jobs:
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl start apache2"
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
 
-  rollback:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.rollback_version }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Setup SSH
-        run: |
-          echo "$PRIVATE_KEY" > private_key.pem
-          chmod 600 private_key.pem
-          mkdir -p ~/.ssh
-          ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
-
-      - name: Get the most recent artifact from S3
-        id: latest_artifact
-        run: |
-          latest_artifact=$(aws s3api list-objects --bucket arti-storage --query "reverse(sort_by(Contents, &LastModified))[0].Key" --output=text --prefix "${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/")
-          echo "Latest artifact: $latest_artifact"
-          echo "::set-output name=artifact_path::$latest_artifact"
-
-      - name: Download the most recent artifact from S3
-        run: aws s3 cp s3://arti-storage/${{ steps.latest_artifact.outputs.artifact_path }} ./artifact-folder 
-
-      - name: Deploy specified artifact to EC2 instance
-        run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R ubuntu:ubuntu /var/www/html/; sudo chmod -R 775 /var/www/html/; sudo mkdir -p /var/www/html/wp-content/themes"
-          unzip ./artifact-folder/* -d ./unzipped-artifact
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./unzipped-artifact/ ubuntu@54.144.17.44:/var/www/html/wp-content/themes/
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.144.17.44 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
-
-      - name: Restart services on EC2 instance
-        run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl stop apache2"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl start apache2"    
+  
