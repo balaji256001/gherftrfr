@@ -93,10 +93,12 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-
+    
     - name: Setup SSH
+      env:
+        PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       run: |
-        echo "${{ secrets.PRIVATE_KEY }}" > private_key.pem
+        echo "$PRIVATE_KEY" > private_key.pem
         chmod 600 private_key.pem
         mkdir -p ~/.ssh
         ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
