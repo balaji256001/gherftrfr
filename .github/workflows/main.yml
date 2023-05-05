@@ -68,11 +68,19 @@ jobs:
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
-      - name: Download latest artifact from S3
+      - name: Get the most recent artifact from S3 folder
+        id: latest_artifact
         run: |
-          latest_artifact=$(aws s3api list-objects --bucket arti-storage --query "reverse(sort_by(Contents, &LastModified))[0].Key" --output=text --prefix "${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/")
+          folder_path="${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}" # Use secrets in folder path
+          latest_artifact=$(aws s3api list-objects --bucket arti-storage --query "reverse(sort_by(Contents[?contains(Key, \`$folder_path\`)], &LastModified))[0].Key" --output=text)
           echo "Latest artifact: $latest_artifact"
-          aws s3 cp s3://arti-storage/$latest_artifact ./artifact-folder/
+          echo "::set-output name=artifact_path::$latest_artifact"
+      - name: Create artifact-folder
+        run: mkdir -p artifact-folder
+      - name: Download the most recent artifact from S3
+        run: aws s3 cp s3://arti-storage/${{ steps.latest_artifact.outputs.artifact_path }} ./artifact-folder
+
+
       - name: Deploy to EC2 instance
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R ubuntu:ubuntu /var/www/html/; sudo chmod -R 775 /var/www/html/; sudo mkdir -p /var/www/html/wp-content/themes; sudo chown -R ubuntu:ubuntu /var/www/html/wp-content/themes; sudo chmod -R 775 /var/www/html/wp-content/themes"
