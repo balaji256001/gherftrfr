@@ -1,0 +1,55 @@
+name: Rollback to Previous Artifact Version
+
+on:
+  workflow_dispatch:
+  # Add other triggers for rollback, such as a failed deployment or a user-requested rollback.
+
+env:
+  ARTIFACT_NAME: fmp-advisor-cms.zip
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Find previous artifact version
+        run: |
+          git checkout main
+          previous_version=$(git log -n 2 --pretty=format:%h -- $ARTIFACT_NAME | tail -1)
+
+      - name: Create rollback branch
+        run: |
+          git branch rollback
+          git checkout rollback
+
+      - name: Revert changes from new artifact version
+        run: |
+          git revert --no-edit $previous_version^..$previous_version
+
+      - name: Copy previous artifact version
+        run: |
+          git checkout $previous_version -- $ARTIFACT_NAME
+          mkdir -p artifacts
+          cp $ARTIFACT_NAME artifacts
+
+      - name: Commit changes to rollback branch
+        run: |
+          git add artifacts/$ARTIFACT_NAME
+          git commit -m "Rollback to previous version of $ARTIFACT_NAME"
+
+      - name: Push changes to rollback branch
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          branch: rollback
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Open pull request to merge rollback branch into main
+        uses: peter-evans/create-pull-request@v3.8.3
+        with:
+          title: Rollback to previous version of $ARTIFACT_NAME
+          commit-message: Rollback to previous version of $ARTIFACT_NAME
+          branch: rollback
+          base: main
+          delete-branch: true
