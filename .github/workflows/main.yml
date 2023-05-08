@@ -1,4 +1,5 @@
 name: WordPress CI/CD
+
 on:
   push:
     branches:
@@ -9,17 +10,17 @@ on:
       - main
       - master
   workflow_dispatch:
+
 env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-east-1
+
 jobs:
   build_and_upload_artifact:
-
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Build and prepare artifacts
         run: |
           artifact_name="fmp-advisor-cms.zip"
@@ -29,10 +30,15 @@ jobs:
           rsync scripts/* --progress artifacts/ --exclude prod
           cd artifacts
           zip -r $artifact_name *
-          aws s3 cp $artifact_name s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/$artifact_name
+
+      - name: Upload artifacts to GitHub
+        uses: actions/upload-artifact@v2
+        with:
+          name: fmp-advisor-cms
+          path: artifacts/fmp-advisor-cms.zip
+
   deploy:
     needs: build_and_upload_artifact
-   
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -46,24 +52,17 @@ jobs:
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
-      - name: Get the most recent artifact from S3 folder
-        id: latest_artifact
-        run: |
-          folder_path="${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}" 
-          latest_artifact=$(aws s3api list-objects --bucket arti-storage --query "reverse(sort_by(Contents[?contains(Key, \`$folder_path\`)], &LastModified))[0].Key" --output=text)
-          echo "Latest artifact: $latest_artifact"
-          echo "::set-output name=artifact_path::$latest_artifact"
-      - name: Create artifact-folder
-        run: mkdir -p artifact-folder
-      - name: Download the most recent artifact from S3
-        run: aws s3 cp s3://arti-storage/${{ steps.latest_artifact.outputs.artifact_path }} ./artifact-folder
+
+      - name: Download artifact from GitHub
+        uses: actions/download-artifact@v2
+        with:
+          name: fmp-advisor-cms
+          path: artifact-folder
+
       - name: Deploy index.html to EC2 instance
         run: |
-          aws s3 cp s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/fmp-advisor-cms.zip ./fmp-advisor-cms.zip
-          unzip -p fmp-advisor-cms.zip custom_packages/index.html > index.html
+          unzip -p artifact-folder/fmp-advisor-cms.zip custom_packages/index.html > index.html
           sudo scp -i private_key.pem -o StrictHostKeyChecking=no ./index.html ubuntu@44.202.19.252:/var/www/html/
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "\
           sudo chown www-data:www-data /var/www/html/index.html; \
           sudo chmod 644 /var/www/html/index.html;"
-     
- 
