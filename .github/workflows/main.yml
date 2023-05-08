@@ -29,7 +29,7 @@ jobs:
           rsync scripts/* --progress artifacts/ --exclude prod
           cd artifacts
           zip -r $artifact_name *
-          aws s3 cp $artifact_name s3://arti-storage}/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/$artifact_name
+          aws s3 cp $artifact_name s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/$artifact_name
   deploy:
     needs: build_and_upload_artifact
    
