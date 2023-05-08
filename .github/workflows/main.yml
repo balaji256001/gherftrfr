@@ -82,8 +82,8 @@ jobs:
 
       - name: Rollback to previous commit
         run: |
-          git fetch origin main
-          git checkout main
+          git fetch origin master
+          git checkout master
 
           last_commit_sha=$(git rev-parse HEAD~1)
 
