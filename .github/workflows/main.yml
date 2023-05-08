@@ -81,7 +81,7 @@ jobs:
 
       - name: Rollback to previous commit
         run: |
-          git checkout master
+          git checkout balaji256001-patch25
           git reset --hard HEAD
           git push --force
       - name: Notify rollback success
