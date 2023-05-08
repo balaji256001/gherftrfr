@@ -21,12 +21,14 @@ env:
 
 jobs:
   build_and_upload_artifact:
+    if: ${{ github.event.inputs.rollback != 'true' }} 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Build and prepare artifacts
+        
         run: |
           artifact_name="fmp-advisor-cms.zip"
           mkdir -p artifacts/fadvuk
@@ -80,7 +82,7 @@ jobs:
       - name: Rollback to previous commit
         run: |
           git checkout master
-          git reset --hard HEAD~1
+          git reset --hard HEAD
           git push --force
       - name: Notify rollback success
         run: echo "Rollback successful"
