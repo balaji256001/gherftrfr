@@ -81,7 +81,7 @@ jobs:
 
       - name: Rollback to previous commit
         env:
-          PAT: ${{ secrets.PAT }}
+          PAT: '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'
         run: |
           git fetch origin master
           git checkout master
