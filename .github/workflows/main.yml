@@ -45,7 +45,7 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
-          ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
+          ssh-keyscan -t ecdsa 54.175.222.11 >> ~/.ssh/known_hosts
       - name: Get the most recent artifact from S3 folder
         id: latest_artifact
         run: |
@@ -61,8 +61,8 @@ jobs:
         run: |
           aws s3 cp s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/fmp-advisor-cms.zip ./fmp-advisor-cms.zip
           unzip -p fmp-advisor-cms.zip custom_packages/index.html > index.html
-          sudo scp -i private_key.pem -o StrictHostKeyChecking=no ./index.html ubuntu@44.202.19.252:/var/www/html/
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "\
+          sudo scp -i private_key.pem -o StrictHostKeyChecking=no ./index.html ubuntu@54.175.222.11:/var/www/html/
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.175.222.11 "\
           sudo chown www-data:www-data /var/www/html/index.html; \
           sudo chmod 644 /var/www/html/index.html;"
      
