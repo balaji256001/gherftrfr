@@ -10,6 +10,10 @@ on:
       - main
       - master
   workflow_dispatch:
+    inputs:
+      rollback:
+      description: 'Manually trigger a rollback'
+      required: false 
 
 env:
   AWS_REGION: us-east-1
