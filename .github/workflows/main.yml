@@ -51,7 +51,7 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
-          ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
+          ssh-keyscan -t ecdsa 54.175.222.11 >> ~/.ssh/known_hosts
 
       - name: Download artifact from GitHub
         uses: actions/download-artifact@v2
@@ -62,7 +62,7 @@ jobs:
       - name: Deploy index.html to EC2 instance
         run: |
           unzip -p artifact-folder/fmp-advisor-cms.zip custom_packages/index.html > index.html
-          sudo scp -i private_key.pem -o StrictHostKeyChecking=no ./index.html ubuntu@44.202.19.252:/var/www/html/
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "\
+          sudo scp -i private_key.pem -o StrictHostKeyChecking=no ./index.html ubuntu@54.175.222.11:/var/www/html/
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.175.222.11 "\
           sudo chown www-data:www-data /var/www/html/index.html; \
           sudo chmod 644 /var/www/html/index.html;"
