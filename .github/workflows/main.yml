@@ -36,7 +36,7 @@ jobs:
         with:
           name: fmp-advisor-cms
           path: artifacts/fmp-advisor-cms.zip
-
+          retain-on-branch: '*'
   deploy:
     needs: build_and_upload_artifact
     runs-on: ubuntu-latest
