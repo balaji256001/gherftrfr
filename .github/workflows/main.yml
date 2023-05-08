@@ -93,4 +93,25 @@ jobs:
           fi
 
           git reset --hard $last_commit_sha
-          git push --force
+          - name: Rollback to previous commit
+  env:
+    PAT: ${{ secrets.PAT }}
+  run: |
+    git fetch origin main
+    git checkout main
+
+    last_commit_sha=$(git rev-parse HEAD~1)
+
+    if [ -z "$last_commit_sha" ]; then
+      echo "No previous commit found"
+      exit 1
+    fi
+
+    git reset --hard $last_commit_sha
+
+    git config --global user.name "balaji256001"
+    git config --global user.email "rameshbalaji256001@gmail.com"
+    git remote set-url origin https://x-access-token:${PAT}@github.com/${{ github.repository }}
+    git push --force
+
+          
