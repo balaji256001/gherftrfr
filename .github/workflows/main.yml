@@ -59,11 +59,12 @@ jobs:
         run: aws s3 cp s3://arti-storage/${{ steps.latest_artifact.outputs.artifact_path }} ./artifact-folder
       - name: Deploy index.html to EC2 instance
         run: |
-          aws s3 cp s3://arti-storage/${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/fmp-advisor-cms.zip ./fmp-advisor-cms.zip
-          unzip -p fmp-advisor-cms.zip custom_packages/index.html > index.html
-          sudo scp -i private_key.pem -o StrictHostKeyChecking=no ./index.html ubuntu@54.175.222.11:/var/www/html/
+          unzip -p ./fmp-advisor-cms.zip custom_packages/index.html > index.html
+          scp -i private_key.pem -o StrictHostKeyChecking=no ./index.html ubuntu@54.175.222.11:/tmp/
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.175.222.11 "\
+          sudo mv /tmp/index.html /var/www/html/; \
           sudo chown www-data:www-data /var/www/html/index.html; \
-          sudo chmod 644 /var/www/html/index.html;"
+          sudo chmod 644 /var/www/html/index.html"
+
      
  
