@@ -30,12 +30,11 @@ jobs:
           rsync scripts/* --progress artifacts/ --exclude prod
           cd artifacts
           zip -r $artifact_name *
-
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v2
         with:
           name: fmp-advisor-cms
-          path: gherftrfr/custom_package/fmp-advisor-cms.zip
+          path: artifacts/fmp-advisor-cms.zip
           retain-on-branch: '*'
   deploy:
     needs: build_and_upload_artifact
@@ -52,12 +51,11 @@ jobs:
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           ssh-keyscan -t ecdsa 54.175.222.11 >> ~/.ssh/known_hosts
-
       - name: Download artifact from GitHub
         uses: actions/download-artifact@v2
         with:
           name: fmp-advisor-cms
-          path: gherftrfr/custom_package/
+          path: artifact-folder
 
       - name: Deploy index.html to EC2 instance
         run: |
