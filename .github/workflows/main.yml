@@ -12,8 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       rollback:
-      description: 'Manually trigger a rollback'
-      required: false 
+        description: 'Manually trigger a rollback'
+        required: false 
+
 
 env:
   AWS_REGION: us-east-1
@@ -81,6 +82,5 @@ jobs:
           git checkout main
           git reset --hard HEAD~1
           git push --force
-
       - name: Notify rollback success
         run: echo "Rollback successful"
