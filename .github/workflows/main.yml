@@ -57,7 +57,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: fmp-advisor-cms
-          path: artifact-folder
+          path: gherftrfr/custom_package/
 
       - name: Deploy index.html to EC2 instance
         run: |
