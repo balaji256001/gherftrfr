@@ -72,6 +72,7 @@ jobs:
           sudo mv /tmp/index.html /var/www/html/; \
           sudo chown www-data:www-data /var/www/html/index.html; \
           sudo chmod 644 /var/www/html/index.html"
+  
   rollback:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.rollback == 'true' }}
@@ -81,8 +82,15 @@ jobs:
 
       - name: Rollback to previous commit
         run: |
-          git checkout balaji256001-patch25
-          git reset --hard HEAD
+          git fetch origin main
+          git checkout main
+
+          last_commit_sha=$(git rev-parse HEAD~1)
+
+          if [ -z "$last_commit_sha" ]; then
+            echo "No previous commit found"
+            exit 1
+          fi
+
+          git reset --hard $last_commit_sha
           git push --force
-      - name: Notify rollback success
-        run: echo "Rollback successful"
