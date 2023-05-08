@@ -79,7 +79,7 @@ jobs:
 
       - name: Rollback to previous commit
         run: |
-          git checkout main
+          git checkout master
           git reset --hard HEAD~1
           git push --force
       - name: Notify rollback success
