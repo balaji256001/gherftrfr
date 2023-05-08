@@ -35,7 +35,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: fmp-advisor-cms
-          path: artifacts/fmp-advisor-cms.zip
+          path: gherftrfr/custom_package/fmp-advisor-cms.zip
           retain-on-branch: '*'
   deploy:
     needs: build_and_upload_artifact
