@@ -65,3 +65,18 @@ jobs:
           sudo mv /tmp/index.html /var/www/html/; \
           sudo chown www-data:www-data /var/www/html/index.html; \
           sudo chmod 644 /var/www/html/index.html"
+  rollback:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.rollback == 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Rollback to previous commit
+        run: |
+          git checkout main
+          git reset --hard HEAD~1
+          git push --force
+
+      - name: Notify rollback success
+        run: echo "Rollback successful"
