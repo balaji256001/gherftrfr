@@ -11,50 +11,38 @@ on:
       - master
   workflow_dispatch:
     inputs:
-      rollback_version:
-        description: 'Artifact version to rollback to (optional)'
-        required: false
+      rollback:
+        description: 'Manually trigger a rollback'
+        required: false 
+
 
 env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-east-1
-  JAVA_HOME: "/usr/lib/jvm/java-1.8.0-amazon-corretto"
 
 jobs:
   build_and_upload_artifact:
-    if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.rollback_version }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up JDK 1.8
-        uses: actions/setup-java@v2
-        with:
-          java-version: '8'
-          distribution: 'temurin'
-
       - name: Build and prepare artifacts
         run: |
-          echo Entered the build phase...
-          echo Build started on `date`
-          version=$(git rev-parse --short HEAD)
-          timestamp=$(date +"%Y%m%d-%H%M%S")
-          artifact_name="fmp-advisor-cms-$version-$timestamp.zip"
-          echo "$FMP_ENV" > scripts/fmpenv
-          echo "$FMP_REGION" > scripts/fmpregion
-          echo "Post build phase started"
+          artifact_name="fmp-advisor-cms.zip"
           mkdir -p artifacts/fadvuk
           cp -PR custom_packages artifacts
           cp -PR forbes-advisor-theme/* artifacts/fadvuk/
           rsync scripts/* --progress artifacts/ --exclude prod
           cd artifacts
           zip -r $artifact_name *
-          aws s3 cp $artifact_name s3://arti-storage/${{ secrets.FMP_ENV }}/${{ secrets.FMP_REGION }}/$artifact_name
+      - name: Upload artifacts to GitHub
+        uses: actions/upload-artifact@v2
+        with:
+          name: fmp-advisor-cms
+          path: artifacts/fmp-advisor-cms.zip
+          retain-on-branch: '*'
   deploy:
     needs: build_and_upload_artifact
-    if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.rollback_version }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -67,65 +55,32 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
-          ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
-      - name: Get the most recent artifact from S3 folder
-        id: latest_artifact
-        run: |
-          folder_path="${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}" # Use secrets in folder path
-          latest_artifact=$(aws s3api list-objects --bucket arti-storage --query "reverse(sort_by(Contents[?contains(Key, \`$folder_path\`)], &LastModified))[0].Key" --output=text)
-          echo "Latest artifact: $latest_artifact"
-          echo "::set-output name=artifact_path::$latest_artifact"
-      - name: Create artifact-folder
-        run: mkdir -p artifact-folder
-      - name: Download the most recent artifact from S3
-        run: aws s3 cp s3://arti-storage/${{ steps.latest_artifact.outputs.artifact_path }} ./artifact-folder
+          ssh-keyscan -t ecdsa 54.175.222.11 >> ~/.ssh/known_hosts
+      - name: Download artifact from GitHub
+        uses: actions/download-artifact@v2
+        with:
+          name: fmp-advisor-cms
+          path: artifact-folder
 
-
-      - name: Deploy to EC2 instance
+      - name: Deploy index.html to EC2 instance
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R ubuntu:ubuntu /var/www/html/; sudo chmod -R 775 /var/www/html/; sudo mkdir -p /var/www/html/wp-content/themes; sudo chown -R ubuntu:ubuntu /var/www/html/wp-content/themes; sudo chmod -R 775 /var/www/html/wp-content/themes"
-          rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@44.202.19.252:/var/www/html/wp-content/themes/
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "unzip -o \$(ls /var/www/html/wp-content/themes/*.zip | tail -n 1) -d /var/www/html/wp-content/themes/"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "ls -la /var/www/html/wp-content/themes/custom_packages"  # Add this line
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo rm -f /var/www/html/index.html"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo cp /var/www/html/wp-content/themes/custom_packages/index.html /var/www/html/"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
-      - name: Run scripts on EC2 instance
-        run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl stop apache2"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl start apache2"
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
+          unzip -p artifact-folder/fmp-advisor-cms.zip custom_packages/index.html > index.html
+          scp -i private_key.pem -o StrictHostKeyChecking=no ./index.html ubuntu@54.175.222.11:/tmp/
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.175.222.11 "\
+          sudo mv /tmp/index.html /var/www/html/; \
+          sudo chown www-data:www-data /var/www/html/index.html; \
+          sudo chmod 644 /var/www/html/index.html"
   rollback:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.rollback_version }}
+    if: ${{ github.event.inputs.rollback == 'true' }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Setup SSH
-      run: |
-        echo "$PRIVATE_KEY" > private_key.pem
-        chmod 600 private_key.pem
-        mkdir -p ~/.ssh
-        ssh-keyscan -t ecdsa 44.202.19.252 >> ~/.ssh/known_hosts
-
-    - name: Download specified artifact version from S3
-      run: |
-        specified_artifact="${{ secrets.FMP_REGION }}/${{ secrets.FMP_ENV }}/fmp-advisor-cms-${{ github.event.inputs.rollback_version }}.zip"
-        aws s3 cp s3://arti-storage/$specified_artifact ./artifact-folder/
-
-    - name: Deploy to EC2 instance
-      run: |
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R ubuntu:ubuntu /var/www/html/; sudo chmod -R 775 /var/www/html/; sudo mkdir -p /var/www/html/wp-content/themes; sudo chown -R ubuntu:ubuntu /var/www/html/wp-content/themes; sudo chmod -R 775 /var/www/html/wp-content/themes"
-        rsync -avz --delete --exclude='.git*' --exclude='.env' --exclude='.github' -e 'ssh -i private_key.pem -o StrictHostKeyChecking=no' --chmod=D2775,F664 --chown=ubuntu:ubuntu ./artifact-folder/ ubuntu@44.202.19.252:/var/www/html/wp-content/themes/
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "unzip -o \$(ls /var/www/html/wp-content/themes/*.zip | tail -n 1) -d /var/www/html/wp-content/themes/"
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "ls -la /var/www/html/wp-content/themes/custom_packages"  # Add this line
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo rm -f /var/www/html/index.html"
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo cp /var/www/html/wp-content/themes/custom_packages/index.html /var/www/html/"
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
-
-    - name: Run scripts on EC2 instance
-      run: |
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl stop apache2"
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo systemctl start apache2"
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "sudo chown -R www-data:www-data /var/www/html/; sudo chmod -R 755 /var/www/html/"
+      - name: Rollback to previous commit
+        run: |
+          git checkout master
+          git reset --hard HEAD~1
+          git push --force
+      - name: Notify rollback success
+        run: echo "Rollback successful"
