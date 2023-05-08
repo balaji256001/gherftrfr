@@ -62,7 +62,7 @@ jobs:
       - name: Deploy index.html to EC2 instance
         run: |
           unzip -p artifact-folder/fmp-advisor-cms.zip custom_packages/index.html > index.html
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@44.202.19.252 "\
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@54.175.222.11 "\
           sudo cp /home/ubuntu/index.html /var/www/html/; \
           sudo chown www-data:www-data /var/www/html/index.html; \
           sudo chmod 644 /var/www/html/index.html;"
